@@ -70,3 +70,5 @@ airflow-webserver.pid
 
 # Docker
 *.sql.bak
+
+todo.md
