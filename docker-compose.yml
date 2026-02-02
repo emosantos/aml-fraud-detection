@@ -2,7 +2,7 @@
 # mlflow on port 5000
 # pgadmin web interface on port 5050
 
-version: '3.8'
+#version: '3.8'
 
 services:
   # PostgreSQL
