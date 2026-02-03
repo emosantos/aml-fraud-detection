@@ -7,25 +7,25 @@ version: '3.8'
 services:
   postgres:
     image: postgres:14-alpine
-    container_name: aml_postgres_new
+    container_name: aml_postgres
     environment:
       POSTGRES_USER: aml_user
       POSTGRES_PASSWORD: aml_password_123
       POSTGRES_DB: aml_fraud_db
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
-      - postgres_data_new:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
 
   mlflow:
     image: ghcr.io/mlflow/mlflow:v2.9.2
-    container_name: aml_mlflow_new
+    container_name: aml_mlflow
     ports:
       - "5000:5000"
     volumes:
-      - mlflow_data_new:/mlflow
+      - mlflow_data:/mlflow
     command: mlflow server --backend-store-uri sqlite:///mlflow/mlflow.db --default-artifact-root /mlflow/mlruns --host 0.0.0.0 --port 5000
 
 volumes:
-  postgres_data_new:
-  mlflow_data_new:
+  pgdata:
+  mlflow_data:
