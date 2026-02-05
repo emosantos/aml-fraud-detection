@@ -268,7 +268,7 @@ class FeatureEngeneering:
             # ADD FEATURES
 
             df = self._add_temporal_features(df)
-            df = self._add_amount_features(df)
+            df = self._add_amout_features(df)
             df = self._add_velocity_features(df)
             df = self._add_network_features(df)
             df = self._add_behavioral_features(df)
