@@ -276,3 +276,7 @@ def run(self):
     
     finally:
         self._close()
+
+if __name__ == "__main__":
+    cleaner = DataCleaner()
+    cleaner.run()
