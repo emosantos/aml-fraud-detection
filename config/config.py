@@ -10,9 +10,9 @@ PROJECT_ROOT = Path(__file__).parent.parent
 
 # Data Dir
 DATA_DIR = PROJECT_ROOT / 'data'
-RAW_DATA_DIT = DATA_DIR / 'raw'
-PROCESSED_DATA_DIT = DATA_DIR / 'processed'
-FEATURES_DATA_DIT = DATA_DIR / 'features'
+RAW_DATA_DIR = DATA_DIR / 'raw'
+PROCESSED_DATA_DIR = DATA_DIR / 'processed'
+FEATURES_DATA_DIR = DATA_DIR / 'features'
 
 # Model Dir
 MODELS_DIR = PROJECT_ROOT / 'models'

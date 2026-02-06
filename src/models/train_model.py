@@ -473,4 +473,4 @@ if __name__ == "__main__":
     # 3. Compare and save
     best_model, best_metrics = trainer.compare_and_save_best(preparer.scaler)
 
-    print(" Training complete! Check MLflow at http://localhost:5000")
+    print(" Training complete! MLflow at http://localhost:5000")
