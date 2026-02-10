@@ -44,17 +44,17 @@ class CSVLoader:
     # SQL insert statements for each table
     TRANSACTION_INSERT_SQL = """
     INSERT INTO bronze_layer.raw_transactions (
-        timestamp, from bank, from_account, to_bank, to_account, amount_received, receiving_currency, 
-        amount_paid, payment_currency, payment_format, is_laundering, ingestion_timestamp, batch_id) 
+        timestamp, from_bank, from_account, to_bank, to_account, amount_received, receiving_currency, 
+        amount_paid, payment_currency, payment_format, is_laundering, batch_id, ingestion_timestamp) 
         
      VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
     """
 
     ACCOUNTS_INSERT_SQL = """
     INSERT INTO bronze_layer.raw_accounts (
-        bank_name, bank_id, account_number, entity_id, entity_name, ingestion_timestamp, batch_id) 
-        
-     VALUES (%s,%s,%s,%s,%s,%s,%s)
+        "bank_name", "bank_id", "account_number", "entity_id", "entity_name",
+        "batch_id", "ingestion_timestamp"
+    ) VALUES (%s,%s,%s,%s,%s,%s,%s)
     """
     
     def __init__(self, chunk_size=50000):
@@ -157,7 +157,7 @@ class CSVLoader:
             })
             print("     ✅ Renamed: 'Account' → 'From Account'")
             print("     ✅ Renamed: 'Account.1' → 'To Account'")
-        
+
         # Also handle if someone manually fixed the CSV
         elif 'From Account' not in df.columns or 'To Account' not in df.columns:
             raise ValueError(
@@ -165,7 +165,7 @@ class CSVLoader:
                 "   CSV might have incorrect headers.\n"
                 f"   Found columns: {list(df.columns)}"
             )
-        
+
         return df
 
     def _load_transactions(self, csv_filename):
@@ -214,25 +214,34 @@ class CSVLoader:
 
                     # Build list of  tuples for batch inserta
 
-                    rows = [
-                        (
-                        row['timestamp'], row['from_bank'], row['from_account'],
-                        row['to_bank'], row['to_account'], row['amount_received'],
-                        row['receiving_currency'], row['amount_paid'],
-                        row['payment_currency'], row['payment_format'],
-                        bool(row['is_laundering']), self.batch_id, now   
-                        )
-                        for _, row in chunk.iterrows()
-                    ]
+                    rows = []
+                    for _, row in chunk.iterrows():
+                        try:
+                            rows.append((
+                                pd.to_datetime(row['timestamp']),  # Convert string to datetime
+                                str(row['from_bank']),
+                                str(row['from_account']),
+                                str(row['to_bank']),
+                                str(row['to_account']),
+                                float(row['amount_received']),
+                                str(row['receiving_currency']),
+                                float(row['amount_paid']),
+                                str(row['payment_currency']),
+                                str(row['payment_format']),
+                                bool(row['is_laundering']),
+                                self.batch_id,  # STRING
+                                now  # DATETIME
+                            ))
+                        except Exception as e:
+                            print(f"⚠️  Skipping row due to error: {e}")
+                            continue               
 
-                execute_batch(cur, self.TRANSACTION_INSERT_SQL, rows, page_size=1000)
-                rows_loaded += len(chunk)
-                pbar.update(len(chunk))
-
-                # Comit every 10 chunks
-
-                if (i + 1) % 10 == 0:
-                    self.conn.commit()
+                    execute_batch(cur, self.TRANSACTION_INSERT_SQL, rows, page_size=1000)
+                    rows_loaded += len(chunk)
+                    pbar.update(len(chunk))
+                    # Comit every 10 chunks
+                    if (i + 1) % 10 == 0:
+                        self.conn.commit()
 
             # Final commit
             self.conn.commit()
@@ -296,12 +305,12 @@ class CSVLoader:
 
                     # Validate fields for first chnk only
                     if i == 0:
-                        missing = set(self.ACCOUNT_COLUMN_MAP.keys()) - set(chunk.columns)
+                        missing = set(self.ACCOUNTS_COLUMN_MAP.keys()) - set(chunk.columns)
                         if missing:
                             raise ValueError(f"Missing columns: {missing}")
                         print(f"Columns validated\n")
                     # Rename columns
-                    chunk = chunk.rename(columns=self.ACCOUNT_COLUMN_MAP)
+                    chunk = chunk.rename(columns=self.ACCOUNTS_COLUMN_MAP)
 
                     # Build list of  tuples for batch inserta
 
@@ -314,14 +323,14 @@ class CSVLoader:
                         for _, row in chunk.iterrows()
                     ]
 
-                execute_batch(cur, self.ACCOUNT_INSERT_SQL, rows, page_size=1000)
-                rows_loaded += len(chunk)
-                pbar.update(len(chunk))
+                    execute_batch(cur, self.ACCOUNTS_INSERT_SQL, rows, page_size=1000)
+                    rows_loaded += len(chunk)
+                    pbar.update(len(chunk))
 
-                # Comit every 10 chunks
+                    # Comit every 10 chunks
 
-                if (i + 1) % 10 == 0:
-                    self.conn.commit()
+                    if (i + 1) % 10 == 0:
+                        self.conn.commit()
 
             self.conn.commit()
             cur.close()
