@@ -316,9 +316,13 @@ class CSVLoader:
 
                     rows = [
                         (
-                        row['from_bank'], row['bank_id'], str(row['account_number']),
-                        str(row['entity_id']), row['entity_name'],
-                        self.batch_id, now   
+                        row['bank_name'],
+                        row['bank_id'],
+                        str(row['account_number']),
+                        str(row['entity_id']),
+                        row['entity_name'],
+                        self.batch_id,
+                        now   
                         )
                         for _, row in chunk.iterrows()
                     ]
@@ -349,6 +353,6 @@ class CSVLoader:
 
 if __name__ == '__main__':
     loader = CSVLoader()
-    loader._load_transactions('HI-Small_Trans.csv')
+    #loader._load_transactions('HI-Small_Trans.csv')
     loader.load_accounts('HI-Small_accounts.csv')
     print("Done")

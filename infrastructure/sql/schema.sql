@@ -16,9 +16,9 @@ CREATE TABLE IF NOT EXISTS bronze_layer.raw_transactions (
     to_bank VARCHAR(100),
     to_account VARCHAR(100),
     amount_received DECIMAL(18,2),
-    receiving_currency VARCHAR(50),
+    receiving_currency VARCHAR(100),
     amount_paid DECIMAL(18,2),
-    payment_currency VARCHAR(50),
+    payment_currency VARCHAR(100),
     payment_format VARCHAR(100),
     is_laundering BOOLEAN,
     ingestion_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -38,8 +38,8 @@ CREATE TABLE IF NOT EXISTS bronze_layer.raw_accounts (
     account_number VARCHAR(100),
     entity_id VARCHAR(100),
     entity_name VARCHAR(200),
-    ingestion_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    batch_id VARCHAR(100)
+    batch_id VARCHAR(100),
+    ingestion_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_raw_accounts_account ON bronze_layer.raw_accounts(account_number);
