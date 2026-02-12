@@ -33,6 +33,34 @@ EXCHANGE_RATES = {
     'PLN': 0.25,
     'ZAR': 0.055,
     'THB': 0.029,
+
+    'US Dollar': 1.0,
+    'Euro': 1.08,
+    'Bitcoin': 45000.0,  # Approximate BTC/USD rate
+    'Australian Dollar': 0.65,
+    'Yen': 0.0067,
+    'Yuan': 0.14,
+    'Rupee': 0.012,
+    'Real': 0.20,
+    'Peso': 0.058,
+    'Pound Sterling': 1.27,
+    'Canadian Dollar': 0.74,
+    'Swiss Franc': 1.13,
+    'Ringgit': 0.22,
+    'Ruble': 0.011,
+    'Rupiah': 0.000065,
+    'Won': 0.00075,
+    'Rand': 0.055,
+    'Lira': 0.033,
+    'Dong': 0.000040,
+    'Shekel': 0.27,
+    'Baht': 0.029,
+    'Krone': 0.095,
+    'Zloty': 0.25,
+    'Riyal': 0.27,
+    'Saudi Riyal': 0.27,
+    'Dirham': 0.27,
+    'Dinar': 3.25,
 }
 
 class DataCleaner:
@@ -61,221 +89,238 @@ class DataCleaner:
 
 # LOAD RAW DATA
 
-def _load_raw_transacitons(self):
-    """
-    Load from Bronze Layer
+    def _load_raw_transactions(self):
+        """
+        Load from Bronze Layer
 
-    In Production, use batch_id to only load new data
-    """
-    print(f"Loading raw transactions from Bronze Layer")
+        In Production, use batch_id to only load new data
+        """
+        print(f"Loading raw transactions from Bronze Layer")
 
-    df = pd.read_sql("""
-    
-        SELECT
-            timestamp,
-            from_bank,
-            from_account,
-            to_bank,
-            to_account,
-            amount_received,
-            receiving_currency,
-            amount_paid,
-            payment_currency,
-            payment_format,
-            is_laundering
-        FROM bronze_layer.raw_transactions
-        ORDER BY timestamp
-    """, self.conn)
+        df = pd.read_sql("""
 
-    print(f"Loaded {len(df)} raw transactions")
-    return df
-
-# CLEANING
-
-def _remove_duplicates(self,df):
-    """Remove exact dupllicate transactions.
-    Must match all:
-    -Timestamp
-    -Sender and Receiver
-    -Amount"""
-
-    before = len(df)
-
-    df = df.drop_duplicate(
-        subset = [
-            'timestamp',
-            'from_account',
-            'to_account',
-            'amount_received',],
-        keep = 'first'
-    )
-    remove = before - len(df)
-    print(f"Removed {remove} duplicate transactions")
-    return df
-
-
-def _remove_invalid_amount(self, df):
-    """"""
-    print("Removing invalid amounts")
-    before =len(df)
-    df = df[df['amount_received'] > 0].copy()
-    df = df[df['amount_received'].notna()].copy()
-
-    removed = before - len(df)
-    print(f"Removed {removed} invalid transactions")
-    return df
-
-def _standardize_currency(self, df):
-    """
-    Convert all amounts to USD using fixed exchange rates.
-    
-    - Look up the exchange rate for receiving_currency
-    - Multiply amount by that rate
-    - If currency is unknown, keep original amount and flag it
-    We keep the original amount + currency for reference (audit trail).
-    """
-    print("  Standardizing currencies to USD...")
-    df['amount_usd'] = df.apply(
-        lambda row: row['amount_received'] * EXCHANGE_RATES.get(row['receiving_currency'], 1.0),
-        axis=1
-    )
-    unknown_currencies = df[~df['receiving_currency'].isin(EXCHANGE_RATES.keys())]
-    if len(unknown_currencies) > 0:
-        print(f"     ⚠️  {len(unknown_currencies):,} transactions with unknown currency (kept as-is)")
-    return df
-
-def _extract_time_components(self, df):
-    """
-    Extract useful time features from timestamp.
-    
-    y
-    """
-    print("  🕐 Extracting time components...")
-    df['timestamp'] = pd.to_datetime(df['timestamp'])
-    df['transaction_date'] = df['timestamp'].dt.date
-    df['transaction_hour'] = df['timestamp'].dt.hour
-    return df
-def _add_derived_flags(self, df):
-    """
-    Add simple boolean flags that are used everywhere downstream.
-    is_cross_border:
-    - True when sender and receiver are at DIFFERENT banks
-    - Cross-border transactions are higher risk in AML
-    currency_mismatch:
-    - True when payment currency ≠ receiving currency
-    - Could indicate currency conversion (common in laundering)
-    """
-    print("  🏁 Adding derived flags...")
-    df['is_cross_border'] = (df['from_bank'] != df['to_bank'])
-    df['currency_mismatch'] = (df['payment_currency'] != df['receiving_currency'])
-    return df
-
-# WRITE TO SILVER LAYER
-
-def _write_to_silver(self, df):
-    """
-    Write clean data to silver_layer.processed_transactions
-    """
-    print(f"Writing to Silver Layer")
-
-    insert_sql = """
-        INSERT INTO silver_layer.processed_transactions (
-                transaction_date,
-                transaction_hour,
-                from_bank, 
+            SELECT
+                timestamp,
+                from_bank,
                 from_account,
                 to_bank,
                 to_account,
-                amount_usd,
-                original_amount,
-                original_currency,
+                amount_received,
+                receiving_currency,
+                amount_paid,
+                payment_currency,
                 payment_format,
-                is_cross_border,
-                currency_mismatch,
                 is_laundering
-        ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-    )"""
+            FROM bronze_layer.raw_transactions
+            ORDER BY timestamp
+        """, self.conn)
 
-    rows = [
-        (
-            row['transaction_date'],
-            int(row['transaction_hour']),
-            row['from_bank'],
-            str(row['from_account']),
-            row['to_bank'],
-            str(row['to_account']),
-            float(row['amount_usd']),
-            float(row['amount_received']),
-            row['receiving_currency'],
-            row['payment_format'],
-            bool(row['is_cross_border']),
-            bool(row['currency_mismatch']),
-            bool(row['is_laundering'])
+        print(f"Loaded {len(df)} raw transactions")
+        return df
+
+    # CLEANING
+
+    def _remove_duplicates(self,df):
+        """Remove exact dupllicate transactions.
+        Must match all:
+        -Timestamp
+        -Sender and Receiver
+        -Amount"""
+
+        before = len(df)
+
+        df = df.drop_duplicates(
+            subset = [
+                'timestamp',
+                'from_account',
+                'to_account',
+                'amount_received',],
+            keep = 'first'
         )
-        for _, row in df.iterrows(
-            
-        )
-    ]
+        remove = before - len(df)
+        print(f"Removed {remove} duplicate transactions")
+        return df
 
-    cur = self.conn.cursor()
-    execute_batch(cur, insert_sql, rows,page_size=5000)
-    self.conn.commit()
-    cur.close()
 
-    print(f"Wrote {len(df)} transactions to Silver Layer")
+    def _remove_invalid_amount(self, df):
+        """"""
+        print("Removing invalid amounts")
+        before =len(df)
+        df = df[df['amount_received'] > 0].copy()
+        df = df[df['amount_received'].notna()].copy()
 
-def _verify_silver(self):
-    """Quick sanity check on Silver Layer data"""
-    cur = self.conn.cursor()
+        removed = before - len(df)
+        print(f"Removed {removed} invalid transactions")
+        return df
 
-    cur.execute("SELECT COUNT(*) FROM silver_layer.processed_transactions")
-    total = cur.fetchone()[0]
-    
-    cur.execute("SELECT COUNT(*) FROM silver_layer.processed_transactions WHERE is_laundering = TRUE")
-    fraud = cur.fetchone()[0]
+    def _standardize_currency(self, df):
+        """
+        Convert all amounts to USD using fixed exchange rates.
 
-    cur.execute("SELECT MIN(transaction_date), MAX(transaction_date) FROM silver_layer.processed_transactions")
-    date_range = cur.fetchone()
+        - Look up the exchange rate for receiving_currency
+        - Multiply amount by that rate
+        - If currency is unknown, keep original amount and flag it
+        We keep the original amount + currency for reference (audit trail).
+        """
+        print("  Standardizing currencies to USD...")           
 
-    print(f"   {total:,} transactions in Silver Layer")
-    print(f"   {fraud:,} transactions marked as laundering")
-    print(f"   Transactions between {date_range[0]} and {date_range[1]}")
-    
-    cur.close()
+        def convert_to_usd(row):
+            currency = row['receiving_currency']
+            amount = row['amount_received']
 
-# MAIN PIPELINE
+            # Lookup Exchange Rates (case-sensitive)
 
-def run(self):
-    """Full cleaning pipeline"""
-    self._connect()
+            rate = EXCHANGE_RATES.get(currency, 1.0)
 
-    try:
-        print("DATA CLEANING PIPELINE")
+            return amount * rate
+        
+        df['amount_used'] = df.apply(convert_to_usd, axis=1)
 
-        # LOAD
+        # Report Unknown Currencies
 
-        df = self._load_raw_transactions()
+        unknown = df[~df['receiving_currency'].isin(EXCHANGE_RATES.keys())]
+        if len(unknown) > 0:
+            print(f"      {len(unknown):,} transactions with unknown currency (kept original amount)")
+            print(f"     Unknown currencies: {unknown['receiving_currency'].value_counts().head(5).to_dict()}")
 
-        # CLEAN
+        return df
 
-        df = self._remove_duplicates(df)
-        df = self._remove_invalid_amount(df)
-        df = self._standardize_currency(df)
-        df = self._extract_time_components(df)
-        df = self._add_derived_flags(df)
+    def _extract_time_components(self, df):
+        """
+        Extract useful time features from timestamp.
 
-        # WRITE
+        y
+        """
+        print("  🕐 Extracting time components...")
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df['transaction_date'] = df['timestamp'].dt.date
+        df['transaction_hour'] = df['timestamp'].dt.hour
+        return df
+    def _add_derived_flags(self, df):
+        """
+        Add simple boolean flags that are used everywhere downstream.
+        is_cross_border:
+        - True when sender and receiver are at DIFFERENT banks
+        - Cross-border transactions are higher risk in AML
+        currency_mismatch:
+        - True when payment currency ≠ receiving currency
+        - Could indicate currency conversion (common in laundering)
+        """
+        print("  🏁 Adding derived flags...")
+        df['is_cross_border'] = (df['from_bank'] != df['to_bank'])
+        df['currency_mismatch'] = (df['payment_currency'] != df['receiving_currency'])
+        return df
 
-        self._write_to_silver(df)
+    # WRITE TO SILVER LAYER
 
-        # SANITY CHECKS
+    def _write_to_silver(self, df):
+        """
+        Write clean data to silver_layer.processed_transactions
+        """
+        print(f"Writing to Silver Layer")
 
-        self._verify_silver()
+        insert_sql = """
+            INSERT INTO silver_layer.processed_transactions (
+                    transaction_date,
+                    transaction_hour,
+                    from_bank, 
+                    from_account,
+                    to_bank,
+                    to_account,
+                    amount_usd,
+                    original_amount,
+                    original_currency,
+                    payment_format,
+                    is_cross_border,
+                    currency_mismatch,
+                    is_laundering
+            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        )"""
 
-        print("Data cleaning pipeline complete")
-    
-    finally:
-        self._close()
+        rows = []
+        for idx, row in df.iterrows():
+            try:
+                rows.append((
+                    row['transaction_date'],
+                    int(row['transaction_hour']),
+                    str(row['from_bank']),
+                    str(row['from_account']),
+                    str(row['to_bank']),
+                    str(row['to_account']),
+                    float(row['amount_usd']),
+                    float(row['amount_received']),
+                    str(row['receiving_currency']),
+                    str(row['payment_format']),
+                    bool(row['is_cross_border']),
+                    bool(row['currency_mismatch']),
+                    bool(row['is_laundering'])
+                ))
+            except Exception as e:
+                print(f"Error processing row {idx}: {e}")
+                print(f" Row: {row.to_dict()}")
+                continue
+
+        print(f" Prepared {len(rows):,} rows for insertion")
+
+        cur = self.conn.cursor()
+        execute_batch(cur, insert_sql, rows,page_size=5000)
+        self.conn.commit()
+        cur.close()
+
+        print(f"Wrote {len(df)} transactions to Silver Layer")
+
+    def _verify_silver(self):
+        """Quick sanity check on Silver Layer data"""
+        cur = self.conn.cursor()
+
+        cur.execute("SELECT COUNT(*) FROM silver_layer.processed_transactions")
+        total = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM silver_layer.processed_transactions WHERE is_laundering = TRUE")
+        fraud = cur.fetchone()[0]
+
+        cur.execute("SELECT MIN(transaction_date), MAX(transaction_date) FROM silver_layer.processed_transactions")
+        date_range = cur.fetchone()
+
+        print(f"   {total:,} transactions in Silver Layer")
+        print(f"   {fraud:,} transactions marked as laundering")
+        print(f"   Transactions between {date_range[0]} and {date_range[1]}")
+
+        cur.close()
+
+    # MAIN PIPELINE
+
+    def run(self):
+        """Full cleaning pipeline"""
+        self._connect()
+
+        try:
+            print("DATA CLEANING PIPELINE")
+
+            # LOAD
+
+            df = self._load_raw_transactions()
+
+            # CLEAN
+
+            df = self._remove_duplicates(df)
+            df = self._remove_invalid_amount(df)
+            df = self._standardize_currency(df)
+            df = self._extract_time_components(df)
+            df = self._add_derived_flags(df)
+
+            # WRITE
+
+            self._write_to_silver(df)
+
+            # SANITY CHECKS
+
+            self._verify_silver()
+
+            print("Data cleaning pipeline complete")
+
+        finally:
+            self._close()
 
 if __name__ == "__main__":
     cleaner = DataCleaner()

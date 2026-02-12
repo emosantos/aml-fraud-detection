@@ -21,8 +21,8 @@ CREATE TABLE IF NOT EXISTS bronze_layer.raw_transactions (
     payment_currency VARCHAR(100),
     payment_format VARCHAR(100),
     is_laundering BOOLEAN,
-    ingestion_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     batch_id VARCHAR(100)
+    ingestion_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 );
 
 CREATE INDEX IF NOT EXISTS idx_raw_timestamp ON bronze_layer.raw_transactions(timestamp);
