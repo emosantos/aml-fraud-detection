@@ -174,7 +174,7 @@ class DataCleaner:
 
             return amount * rate
         
-        df['amount_used'] = df.apply(convert_to_usd, axis=1)
+        df['amount_usd'] = df.apply(convert_to_usd, axis=1)
 
         # Report Unknown Currencies
 
@@ -238,6 +238,8 @@ class DataCleaner:
         )"""
 
         rows = []
+        errors = 0
+
         for idx, row in df.iterrows():
             try:
                 rows.append((
@@ -255,10 +257,17 @@ class DataCleaner:
                     bool(row['currency_mismatch']),
                     bool(row['is_laundering'])
                 ))
+            except KeyError as e:
+                if errors == 0:
+                    print(f"\n ERROR Column {e} not found in DF")
+                    print(f"Available columns : {list(df.columns)}")
+                    print(f"Sample row: {row.to_dict()}")
+                errors += 1
             except Exception as e:
-                print(f"Error processing row {idx}: {e}")
-                print(f" Row: {row.to_dict()}")
+                errors += 1
                 continue
+        if errors > 0:
+            print(f"Skipped {errors} rows due to errors")
 
         print(f" Prepared {len(rows):,} rows for insertion")
 
@@ -267,7 +276,7 @@ class DataCleaner:
         self.conn.commit()
         cur.close()
 
-        print(f"Wrote {len(df)} transactions to Silver Layer")
+        print(f"Wrote {len(rows):,} transactions to Silver Layer")
 
     def _verify_silver(self):
         """Quick sanity check on Silver Layer data"""

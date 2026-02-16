@@ -7,11 +7,11 @@ This project implements a Medallion Architecture to process and analyze over 5 m
 
 ## Data Strategy
 
-    Bronze (Active): Raw ingestion of CSV data into PostgreSQL with batch tracking.
+    Bronze : Raw ingestion of CSV data into PostgreSQL with batch tracking.
 
-    Silver (In Progress): Data cleaning, deduplication, and schema standardization.
+    Silver : Data cleaning, deduplication, and schema standardization.
 
-    Gold (Planned): Feature engineering and ML model training
+    Gold : Feature engineering and ML model training
 
 ## Project Structure
 
@@ -24,12 +24,13 @@ aml-fraud-detection/
 ├── src/           # Core logic (Ingestion, Processing, Models)
 
 
-## Tech Stack
+## 🛠️ Tech Stack
 
-    Language: Python 3.x (Pandas, Psycopg2, SQLAlchemy)
-
-    Database: PostgreSQL 15 (Dockerized)
-
-    Orchestration: Apache Airflow
-
-    Tooling: Docker & Docker Compose
+- **Database**: PostgreSQL
+- **Data Processing**: Pandas, PySpark
+- **ML**: Scikit-learn, XGBoost, LightGBM, SMOTE
+- **MLOps**: MLflow (experiment tracking)
+- **API**: FastAPI
+- **Orchestration**: Apache Airflow (planned)
+- **Visualization**: Streamlit, Plotly
+- **Tooling**: Docker
