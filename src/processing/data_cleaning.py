@@ -61,6 +61,9 @@ EXCHANGE_RATES = {
     'Saudi Riyal': 0.27,
     'Dirham': 0.27,
     'Dinar': 3.25,
+    'UK Pound': 1.27,
+    'Mexican Peso': 0.058,
+    'Brazil Real':  0.20
 }
 
 class DataCleaner:
@@ -214,28 +217,17 @@ class DataCleaner:
     # WRITE TO SILVER LAYER
 
     def _write_to_silver(self, df):
-        """
-        Write clean data to silver_layer.processed_transactions
-        """
-        print(f"Writing to Silver Layer")
+        """Write cleaned data to silver_layer.processed_transactions"""
+        print("💾 Writing to Silver Layer...")
 
-        insert_sql = """
-            INSERT INTO silver_layer.processed_transactions (
-                    transaction_date,
-                    transaction_hour,
-                    from_bank, 
-                    from_account,
-                    to_bank,
-                    to_account,
-                    amount_usd,
-                    original_amount,
-                    original_currency,
-                    payment_format,
-                    is_cross_border,
-                    currency_mismatch,
-                    is_laundering
-            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-        )"""
+        # Clean SQL with no extra characters
+        insert_sql = (
+            "INSERT INTO silver_layer.processed_transactions ("
+            "transaction_date, transaction_hour, from_bank, from_account, "
+            "to_bank, to_account, amount_usd, payment_format, "
+            "is_cross_border, currency_mismatch, is_laundering"
+            ") VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
+        )
 
         rows = []
         errors = 0
@@ -250,33 +242,28 @@ class DataCleaner:
                     str(row['to_bank']),
                     str(row['to_account']),
                     float(row['amount_usd']),
-                    float(row['amount_received']),
-                    str(row['receiving_currency']),
                     str(row['payment_format']),
                     bool(row['is_cross_border']),
                     bool(row['currency_mismatch']),
                     bool(row['is_laundering'])
                 ))
-            except KeyError as e:
-                if errors == 0:
-                    print(f"\n ERROR Column {e} not found in DF")
-                    print(f"Available columns : {list(df.columns)}")
-                    print(f"Sample row: {row.to_dict()}")
-                errors += 1
             except Exception as e:
+                if errors == 0:
+                    print(f"\n  First error: {e}")
                 errors += 1
                 continue
-        if errors > 0:
-            print(f"Skipped {errors} rows due to errors")
 
-        print(f" Prepared {len(rows):,} rows for insertion")
+        if errors > 0:
+            print(f"     Skipped {errors:,} rows due to errors")
+
+        print(f"   Prepared {len(rows):,} rows for insertion")
 
         cur = self.conn.cursor()
-        execute_batch(cur, insert_sql, rows,page_size=5000)
+        execute_batch(cur, insert_sql, rows, page_size=5000)
         self.conn.commit()
         cur.close()
 
-        print(f"Wrote {len(rows):,} transactions to Silver Layer")
+        print(f"    Wrote {len(rows):,} rows to Silver Layer")
 
     def _verify_silver(self):
         """Quick sanity check on Silver Layer data"""
