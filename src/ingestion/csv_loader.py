@@ -356,3 +356,6 @@ if __name__ == '__main__':
     #loader._load_transactions('HI-Small_Trans.csv')
     loader.load_accounts('HI-Small_accounts.csv')
     print("Done")
+
+    loader._load_transactions('HI-Small_Trans.csv')
+    print(f"Loaded Transactions")
