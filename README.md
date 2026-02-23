@@ -15,14 +15,6 @@ This project implements a Medallion Architecture to process and analyze over 5 m
 
 ## Project Structure
 
-aml-fraud-detection/
-├── airflow/       # Pipeline orchestration (DAGs)
-├── config/        # Database and system configurations
-├── data/          # Local data storage (Raw, Processed, Features)
-├── docker/        # PostgreSQL container setup
-├── notebooks/     # EDA and model prototyping
-├── src/           # Core logic (Ingestion, Processing, Models)
-
 
 ## 🛠️ Tech Stack
 
@@ -34,3 +26,4 @@ aml-fraud-detection/
 - **Orchestration**: Apache Airflow (planned)
 - **Visualization**: Streamlit, Plotly
 - **Tooling**: Docker
+
