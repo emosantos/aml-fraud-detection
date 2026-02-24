@@ -72,3 +72,6 @@ airflow-webserver.pid
 *.sql.bak
 
 todo.md
+.aider*
+
+readmeanot.md
