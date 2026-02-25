@@ -56,10 +56,22 @@ class FeatureEngeneering:
 
     def _get_total_rows(self):
         """Get total number of rows in the processed transactions table"""
-        cur = self.conn.cursor()
-        cur.execute("SELECT COUNT(*) FROM silver_layer.processed_transactions")
-        total = cur.fetchone()[0]
-        cur.close()
+        try:
+            cur = self.conn.cursor()
+            cur.execute("SELECT COUNT(*) FROM silver_layer.processed_transactions")
+            result = cur.fetchone()
+            cur.close()
+
+            if result is None or result[0] is None:
+                raise ValueError("No data found in silver_layer.processed_transactions")
+            total = result[0]
+            print(f"Found {total:,} rows in silver_layer.processed_transactions")
+            return total
+        except Exception as e:
+            print(f"Error fetching total rows: {e}")
+            raise
+            
+            
 
     def _load_batch(self, offset,limit):
         """Load a batch of transactions"""
@@ -76,7 +88,7 @@ class FeatureEngeneering:
     def _precompute_account_features(self):
         """Precompute account-level features that require full data"""
 
-        print("Precomputing account-level features")
+        print("Pre-computing account-level features")
 
         
         query = """
@@ -89,11 +101,8 @@ class FeatureEngeneering:
                    MAX(amount_usd) AS account_max_amount,
                    COUNT(DISTINCT to_account) AS unique_counterparties,
                    AVG(CASE WHEN is_cross_border THEN 1 ELSE 0 END) * 100 AS account_cross_border_pct,
-                   AVG(CASE WHEN is_unusual_hour THEN 1 ELSE 0 END) * 100 AS account_unusual_hour_pct
-            FROM ( SELECT from_account, amount_usd, is_cross_border, is_unusual_hour,
-                    CASE WHEN transaction_hour < 6 OR transaction_hour > 22 THEN TRUE ELSE FALSE END as is_unusual_hour
-                    FROM silver_layer.processed_transactions
-            ) sub
+                   AVG(CASE WHEN transaction_hour < 6 OR transaction_hour > 22 THEN 1.0 ELSE 0.0 END) * 100 as account_unusual_hour_pct
+            FROM silver_layer.processed_transactions
             GROUP BY from_account
         """
 
@@ -121,7 +130,7 @@ class FeatureEngeneering:
 
         # Build Graph
 
-        G = nx.DiGraph
+        G = nx.DiGraph()
         for _, row in edges.iterrows():
             G.add_edge(row['from_account'], row['to_account'], weight=row['total_amount'])
         
@@ -139,13 +148,13 @@ class FeatureEngeneering:
         # Store in cache
 
         for node in G.nodes():
-            self.network_feautures[node] = {
+            self._add_network_features[node] = {
                 'pagerank': pagerank.get(node, 0),
                 'in_degree': in_degrees.get(node, 0),
                 'out_degree': out_degrees.get(node, 0)
             }
 
-        print(f" Computed network features for {len(self.network_feautures):,} accounts")
+        print(f" Computed network features for {len(self._add_network_features):,} accounts")
 
     # Batch Processing
 
@@ -171,24 +180,33 @@ class FeatureEngeneering:
 
         """Amount Based Features using pre-computed account features"""
 
-        # Map pre-computed account features
+        # Lookup series for each feature
 
-        for col in ['account_total_transactions', 'acount_total_volume', 'account_avg_amount', 'account_std_amount',
-                    'account_min_amount', 'account_max_amount', 'unique_counterparties',
-                    'account_cross_border_pct', 'account_unusual_hour_pct']:
-            df[col] = df['from_account'].map(lambda x: self.account_features.get(x, {}).get(col, 0))
+        feature_cols = [
+            'acount_avg_amount', 'account_std_amount', 'account_min_amount', 'account_max_amount',
+            'account_total_transactions', 'account_total_volume', 'unique_counterparties',
+            'account_cross_border_pct', 'account_unusual_hour_pct']
+
+        # Map each feature
+        for col in feature_cols:
+            lookup_series = pd.Series(
+                {k: v[col] for k, v in self.account_features.items()}
+            )
+            df[f'from_{col}'] = df['from_account'].map(lookup_series).fillna(0)
 
         # Z-Score
+        df['amount_z_score'] = (
+        (df['amount_usd'] - df['account_avg_amount']) / (df['account_std_amount'] + 1e-6)
+    )
 
-        df['amount_z_score'] = (df['amount_usd'] - df['account_avg_amount']) / (df['account_std_amount'] + 1e-6)
+        # Percentile
+        df['amount_percentile'] = df.groupby('from_account')['amount_usd'].rank(pct=True) * 100
 
-        # Percentile (Approximate within batch)
-        df['amount_percentile'] = df.groupby('from_account')['amount_usd'].rank(pct=True)
+        # Flags
+        df['is_round_amount'] = (df['amount_usd'] % 1000 == 0).astype(int)
 
-        #Flags
-        df['is_round_amout'] = (df['amount_usd'] % 1000 == 0).astype(int)
         high_value_threshold = df['amount_usd'].quantile(0.95)
-        df['is_high_value'] = (df['amount_usd'] > high_value_threshold).astype(int)
+        df['is_high_value'] = (df['amount_usd'] >= high_value_threshold).astype(int)
 
         return df
     
@@ -214,20 +232,22 @@ class FeatureEngeneering:
         return df
 
     def _add_network_features(self, df):
-        """Network features using pre-computed values"""
+        """Network features using pre-computed values (vectorized)"""
+        # Lookup series
+        pagerank_series = pd.Series(
+            {k: v['pagerank'] for k, v in self._add_network_features.items()}
+        )
+        in_degree_series = pd.Series(
+            {k: v['in_degree'] for k, v in self._add_network_features.items()}
+        )
+        out_degree_series = pd.Series(
+            {k: v['out_degree'] for k, v in self._add_network_features.items()}
+        )
 
-        df['from_pagerank'] = df['from_account'].map(
-            lambda x: self.network_features.get(x, {}).get('pagerank', 0)
-        )
-        df['to_pagerank'] = df['to_account'].map(
-            lambda x: self.network_features.get(x, {}).get('pagerank', 0)
-        )
-        df['from_out_degree'] = df['from_account'].map(
-            lambda x: self.network_features.get(x, {}).get('out_degree', 0)
-        )
-        df['to_in_degree'] = df['to_account'].map(
-            lambda x: self.network_features.get(x, {}).get('in_degree', 0)
-        )
+        df['from_pagerank'] = df['from_account'].map(pagerank_series).fillna(0)
+        df['to_pagerank'] = df['to_account'].map(pagerank_series).fillna(0)
+        df['from_out_degree'] = df['from_account'].map(out_degree_series).fillna(0)
+        df['to_in_degree'] = df['to_account'].map(in_degree_series).fillna(0)
 
         df['pagerank_ratio'] = df['from_pagerank'] / (df['to_pagerank'] + 1e-8)
 
