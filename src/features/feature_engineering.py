@@ -35,7 +35,7 @@ class FeatureEngeneering:
     def __init__(self):
         self.conn = None
         self.account_features = {}
-        self._add_network_features = {}
+        self.network_features = {}
 
     # Connection
 
@@ -94,7 +94,7 @@ class FeatureEngeneering:
         query = """
             SELECT from_account, 
                    COUNT(*) AS account_total_transactions, 
-                   SUM(amount_usd) AS acount_total_volume,
+                   SUM(amount_usd) AS account_total_volume,
                    AVG(amount_usd) AS account_avg_amount,
                    STDDEV(amount_usd) AS account_std_amount,
                    MIN(amount_usd) AS account_min_amount,
@@ -148,13 +148,13 @@ class FeatureEngeneering:
         # Store in cache
 
         for node in G.nodes():
-            self._add_network_features[node] = {
+            self.network_features[node] = {
                 'pagerank': pagerank.get(node, 0),
                 'in_degree': in_degrees.get(node, 0),
                 'out_degree': out_degrees.get(node, 0)
             }
 
-        print(f" Computed network features for {len(self._add_network_features):,} accounts")
+        print(f" Computed network features for {len(self.network_features):,} accounts")
 
     # Batch Processing
 
@@ -183,7 +183,7 @@ class FeatureEngeneering:
         # Lookup series for each feature
 
         feature_cols = [
-            'acount_avg_amount', 'account_std_amount', 'account_min_amount', 'account_max_amount',
+            'account_avg_amount', 'account_std_amount', 'account_min_amount', 'account_max_amount',
             'account_total_transactions', 'account_total_volume', 'unique_counterparties',
             'account_cross_border_pct', 'account_unusual_hour_pct']
 
@@ -196,7 +196,7 @@ class FeatureEngeneering:
 
         # Z-Score
         df['amount_z_score'] = (
-        (df['amount_usd'] - df['account_avg_amount']) / (df['account_std_amount'] + 1e-6)
+        (df['amount_usd'] - df['from_account_avg_amount']) / (df['from_account_std_amount'] + 1e-6)
     )
 
         # Percentile
@@ -235,13 +235,13 @@ class FeatureEngeneering:
         """Network features using pre-computed values (vectorized)"""
         # Lookup series
         pagerank_series = pd.Series(
-            {k: v['pagerank'] for k, v in self._add_network_features.items()}
+            {k: v['pagerank'] for k, v in self.network_features.items()}
         )
         in_degree_series = pd.Series(
-            {k: v['in_degree'] for k, v in self._add_network_features.items()}
+            {k: v['in_degree'] for k, v in self.network_features.items()}
         )
         out_degree_series = pd.Series(
-            {k: v['out_degree'] for k, v in self._add_network_features.items()}
+            {k: v['out_degree'] for k, v in self.network_features.items()}
         )
 
         df['from_pagerank'] = df['from_account'].map(pagerank_series).fillna(0)
@@ -296,6 +296,7 @@ class FeatureEngeneering:
 
             first_batch = True
             offset = 0
+            all_batches = []
 
             with tqdm(total = total_rows, desc="Processing", unit = "rows") as pbar:
                 while offset < total_rows:
@@ -305,22 +306,16 @@ class FeatureEngeneering:
                         break
 
                     batch_features = self._process_batch(batch)
-
-                    # Append to Parquet
-                    if first_batch:
-                        batch_features.to_parquet(output_path, index=False)
-                        first_batch = False
-                    else:
-                        # Append to existing file
-                        existing = pd.read_parquet(output_path)
-                        combined = pd.concat([existing, batch_features], ignore_index=True)
-                        combined.to_parquet(output_path, index=False)
+                    all_batches.append(batch_features)
 
                     offset += BATCH_SIZE
                     pbar.update(len(batch))
+                 
 
             # Verify and summarize
-            final_df = pd.read_parquet(output_path)
+            final_df = pd.concat(all_batches, ignore_index=True)
+            final_df.to_parquet(output_path, index=False)
+
 
             print(f"Feature Enginnering Complete")
             print(f"Transactions Processed: {len(final_df):,}")

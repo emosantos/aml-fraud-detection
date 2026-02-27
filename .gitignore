@@ -19,6 +19,7 @@ data/processed/*.csv
 data/processed/*.parquet
 data/features/*.csv
 data/features/*.parquet
+data/gold_layer/*.parquet
 *.db
 *.sqlite
 
@@ -44,6 +45,7 @@ models/*.pkl
 models/*.joblib
 models/*.h5
 models/*.pt
+models/*.json
 mlruns/
 artifacts/
 
@@ -75,3 +77,7 @@ todo.md
 .aider*
 
 readmeanot.md
+
+# Data
+
+*.json
