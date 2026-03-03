@@ -7,7 +7,7 @@ Pydantic datamodels for API request and response schemas.
 etc.
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 # Request body - What the caller sends to /predict
 
@@ -93,6 +93,7 @@ class TransactionFeatures(BaseModel):
 # Reponse Schemas
 
 class PredictionResponse(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     fraud_probability: float  # Raw model score 0.0–1.0
     is_laundering:     bool   # True if score >= threshold
     threshold:         float  # Threshold used for the binary decision
@@ -101,6 +102,7 @@ class PredictionResponse(BaseModel):
 
 
 class MetricsResponse(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     model_name:       str
     roc_auc:          float
     pr_auc:           float
@@ -119,6 +121,7 @@ class FeatureImportanceResponse(BaseModel):
 
 
 class HealthResponse(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     status:        str   # "ok" or "degraded"
     model_loaded:  bool
     model_version: str

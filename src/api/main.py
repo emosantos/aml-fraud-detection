@@ -30,6 +30,20 @@ from src.api.schemas import (
     HealthResponse
 )
 
+import math
+
+def sanitise(obj):
+    """Recursively replace inf/nan with None so JSON serialisation doesn't crash."""
+    if isinstance(obj, float):
+        if math.isinf(obj) or math.isnan(obj):
+            return None
+        return obj
+    if isinstance(obj, dict):
+        return {k: sanitise(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [sanitise(v) for v in obj]
+    return obj
+
 log = logging.getLogger(__name__)
 
 # Paths
@@ -191,24 +205,19 @@ def predict(
 def get_metrics():
     """Evaluation metrics for the best model (full curve data included)."""
     try:
-        return MetricsResponse(**load_metrics())
+        return MetricsResponse(**sanitise(load_metrics()))
     except FileNotFoundError as e:
         raise HTTPException(status_code=503, detail=str(e))
 
 
 @app.get("/metrics/{model_name}", response_model=MetricsResponse, tags=["Model"])
 def get_model_metrics(model_name: str):
-    """Evaluation metrics for a specific model by name."""
     if model_name not in VALID_MODELS:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Unknown model '{model_name}'. Valid options: {VALID_MODELS}"
-        )
+        raise HTTPException(status_code=404, detail=f"Unknown model '{model_name}'. Valid options: {VALID_MODELS}")
     try:
-        return MetricsResponse(**load_metrics_by_name(model_name))
+        return MetricsResponse(**sanitise(load_metrics_by_name(model_name)))
     except FileNotFoundError as e:
         raise HTTPException(status_code=503, detail=str(e))
-
 
 @app.get("/comparison", tags=["Model"])
 def get_comparison():

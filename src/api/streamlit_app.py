@@ -29,16 +29,7 @@ st.set_page_config(
 
 API_URL = "http://localhost:8000"
 
-# Custom CSS
 
-st.set_page_config(
-    page_title="AML Fraud Detection",
-    page_icon="🔍",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
-
-API_URL = "http://localhost:8000"
 
 # ── Custom CSS ─────────────────────────────────────────────────────
 # Streamlit has limited built-in styling. st.markdown with
@@ -153,6 +144,12 @@ def metric_card(label: str, value: str, sub: str = ""):
     </div>
     """, unsafe_allow_html=True)
 
+def hex_to_rgba(hex_color: str, alpha: float = 0.06) -> str:
+    """Convert a 6-digit hex color to rgba() string for Plotly fillcolor."""
+    hex_color = hex_color.lstrip("#")
+    r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
+    return f"rgba({r},{g},{b},{alpha})"
+
 # ── Sidebar ────────────────────────────────────────────────────────
 # st.sidebar.* renders content in the left panel.
 # Everything inside the `with st.sidebar:` block goes there.
@@ -242,7 +239,7 @@ if page == "📊 Model Performance":
         fig.add_trace(go.Scatter(
             x=roc["fpr"], y=roc["tpr"], mode="lines",
             line=dict(color=color, width=2.5),
-            fill="tozeroy", fillcolor=f"{color}0f",
+            fill="tozeroy", fillcolor=f"rgba(0,212,255,0.06)",
             name=f"AUC = {metrics['roc_auc']:.3f}",
         ))
         fig.update_layout(**LAYOUT, xaxis_title="FPR", yaxis_title="TPR",
@@ -257,7 +254,7 @@ if page == "📊 Model Performance":
         fig2.add_trace(go.Scatter(
             x=pr["recall"], y=pr["precision"], mode="lines",
             line=dict(color=color, width=2.5),
-            fill="tozeroy", fillcolor=f"{color}0f",
+            fill="tozeroy", fillcolor=f"rgba(0,212,255,0.06)",
             name=f"AP = {metrics['pr_auc']:.3f}",
         ))
         fig2.update_layout(**LAYOUT, xaxis_title="Recall", yaxis_title="Precision",
@@ -272,7 +269,7 @@ if page == "📊 Model Performance":
         z=cm, x=labels, y=labels,
         text=[[str(v) for v in row] for row in cm],
         texttemplate="%{text}", textfont=dict(size=18, family="Space Mono"),
-        colorscale=[[0, "#13151c"], [1, f"{color}40"]], showscale=False, xgap=3, ygap=3,
+        colorscale=[[0, "#13151c"], [1, hex_to_rgba(color, alpha=0.25)]],showscale=False, xgap=3, ygap=3,
     ))
     fig3.update_layout(**LAYOUT, xaxis_title="Predicted", yaxis_title="Actual", height=300)
     col, _ = st.columns([1, 2])
@@ -338,10 +335,10 @@ elif page == "🏆 Model Comparison":
             text=[f"{m[k]:.3f}" for k in metric_keys],
             textposition="outside", textfont=dict(family="Space Mono", size=9),
         ))
-    fig.update_layout(**LAYOUT, barmode="group",
-                      yaxis=dict(range=[0, 1.15], gridcolor="#1f2330", linecolor="#1f2330"),
-                      legend=dict(bgcolor="rgba(0,0,0,0)", orientation="h", y=1.08),
-                      height=400)
+    bar_layout = {**LAYOUT, "barmode": "group", "height": 400,
+                  "yaxis": dict(range=[0, 1.15], gridcolor="#1f2330", linecolor="#1f2330"),
+                  "legend": dict(bgcolor="rgba(0,0,0,0)", orientation="h", y=1.08)}
+    fig.update_layout(**bar_layout)
     st.plotly_chart(fig, use_container_width=True)
 
     # Overlaid ROC and PR curves — fetch full curve data per model
