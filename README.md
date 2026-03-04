@@ -135,16 +135,6 @@ curl -X POST "http://localhost:8000/predict?threshold=0.4" \
 
 ## Dashboard
 
-| Page | Description |
-|---|---|
-| **Model Performance** | ROC curve, PR curve, confusion matrix, key metrics for the best model |
-| **Model Comparison** | All three models, grouped bar chart, overlaid curves, confusion matrices |
-| **Threshold Tuning** | Live slider, instantly see how precision, recall and F1 respond |
-| **Feature Importance** | What the model learned to look at |
-| **Live Scoring** | Submit a transaction, get a fraud probability gauge and risk classification |
-
-## Dashboard Preview
-
 <details>
 <summary>📊 <strong>Model Performance</strong> — ROC curve, PR curve, confusion matrix and key metrics for the best model</summary>
 <br>
