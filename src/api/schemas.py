@@ -18,12 +18,13 @@ class TransactionFeatures(BaseModel):
     # Time Features
     hour_sin: float = Field(...)
     hour_cos: float = Field(...)
-    day_of_the_week: int = Field(...,ge=0,le=6)
+    day_of_week: int = Field(...,ge=0,le=6)
     dow_sin: float = Field(...)
     dow_cos: float = Field(...)
     is_weekend: int = Field(..., ge=0, le=1)
     is_business_hours: int = Field(..., ge=0, le=1)
     is_unusual_hour: int = Field(..., ge=0, le=1)
+    transaction_hour: int = Field(..., ge=0, le=23, description="Raw transaction hour (0-23)")
 
     # Transaction type flags
     is_cross_border: int = Field(..., ge=0, le=1)
@@ -48,7 +49,7 @@ class TransactionFeatures(BaseModel):
     is_high_value: int = Field(..., ge=0, le=1)
 
     # Velocity features
-    hours_sin_last_txn: float = Field(...)
+    hours_since_last_txn: float = Field(...)
     is_rapid_succession: int = Field(..., ge=0, le=1)
     txns_same_day: int = Field(..., ge=0)
 
@@ -56,7 +57,7 @@ class TransactionFeatures(BaseModel):
     from_pagerank: float = Field(...)
     to_pagerank: float = Field(...)
     from_out_degree: int = Field(..., ge=0)
-    from_in_degree: int = Field(..., ge=0)
+    to_in_degree:    int   = Field(..., ge=0)
     pagerank_ratio: float = Field(..., ge=0)
 
     # Composite risk signal

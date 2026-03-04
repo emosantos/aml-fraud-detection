@@ -386,12 +386,12 @@ elif page == "🏆 Model Comparison":
             z=cm, x=["Legit", "Laund."], y=["Legit", "Laund."],
             text=[[str(v) for v in row] for row in cm],
             texttemplate="%{text}", textfont=dict(size=16, family="Space Mono"),
-            colorscale=[[0, "#13151c"], [1, f"{c}40"]], showscale=False, xgap=3, ygap=3,
+            colorscale=[[0, "#13151c"], [1, hex_to_rgba(color, alpha=0.25)]], showscale=False, xgap=3, ygap=3,
         ))
-        fig_cm.update_layout(**LAYOUT, title=dict(text=model_label(name),
-                             font=dict(color=c, family="Space Mono", size=11)),
-                             xaxis_title="Predicted", yaxis_title="Actual",
-                             height=260, margin=dict(l=10, r=10, t=40, b=10))
+        cm_layout = {**LAYOUT, "height": 260, "margin": dict(l=10, r=10, t=40, b=10),
+                     "title": dict(text=model_label(name), font=dict(color=c, family="Space Mono", size=11)),
+                     "xaxis_title": "Predicted", "yaxis_title": "Actual"}
+        fig_cm.update_layout(**cm_layout)
         with cm_cols[i]:
             st.plotly_chart(fig_cm, use_container_width=True)
 
@@ -500,9 +500,10 @@ elif page == "🔬 Feature Importance":
         textposition="outside",
         textfont=dict(family="Space Mono", size=10, color="#6b7280"),
     ))
-    fig.update_layout(**LAYOUT, height=max(350, len(df_fi) * 28), xaxis_title="Importance",
-                      yaxis=dict(gridcolor="#1f2330", linecolor="#1f2330",
-                                 tickfont=dict(family="DM Sans", size=11)))
+    fi_layout = {**LAYOUT, "height": max(350, len(df_fi) * 28), "xaxis_title": "Importance",
+                 "yaxis": dict(gridcolor="#1f2330", linecolor="#1f2330",
+                               tickfont=dict(family="DM Sans", size=11))}
+    fig.update_layout(**fi_layout)
     st.plotly_chart(fig, use_container_width=True)
 
     with st.expander("Raw data"):
@@ -526,7 +527,7 @@ elif page == "🚨 Live Scoring":
 
     # Three preset scenarios for demo purposes
     PRESETS = {
-        "🟢 Low Risk — Normal transfer": dict(
+        " Low Risk — Normal transfer": dict(
             amount_usd=250.0, hour_sin=0.0, hour_cos=1.0,
             day_of_week=2, dow_sin=0.782, dow_cos=0.623,
             is_weekend=0, is_business_hours=1, is_unusual_hour=0,
@@ -541,8 +542,9 @@ elif page == "🚨 Live Scoring":
             hours_since_last_txn=48.0, is_rapid_succession=0, txns_same_day=1,
             from_pagerank=0.0001, to_pagerank=0.0002, from_out_degree=3,
             to_in_degree=5, pagerank_ratio=2.0, suspicious_signal_count=0,
+            transaction_hour=14,
         ),
-        "🟡 Medium Risk — Cross-border elevated velocity": dict(
+        " Medium Risk — Cross-border elevated velocity": dict(
             amount_usd=4200.0, hour_sin=-0.5, hour_cos=-0.866,
             day_of_week=5, dow_sin=-0.975, dow_cos=0.223,
             is_weekend=1, is_business_hours=0, is_unusual_hour=0,
@@ -557,8 +559,9 @@ elif page == "🚨 Live Scoring":
             hours_since_last_txn=3.0, is_rapid_succession=0, txns_same_day=3,
             from_pagerank=0.0012, to_pagerank=0.0045, from_out_degree=9,
             to_in_degree=22, pagerank_ratio=3.75, suspicious_signal_count=3,
+            transaction_hour=22,
         ),
-        "🔴 High Risk — Suspicious layering pattern": dict(
+        " High Risk — Suspicious layering pattern": dict(
             amount_usd=9900.0, hour_sin=-0.866, hour_cos=-0.5,
             day_of_week=6, dow_sin=-0.782, dow_cos=0.623,
             is_weekend=1, is_business_hours=0, is_unusual_hour=1,
@@ -573,11 +576,12 @@ elif page == "🚨 Live Scoring":
             hours_since_last_txn=0.2, is_rapid_succession=1, txns_same_day=9,
             from_pagerank=0.0089, to_pagerank=0.0310, from_out_degree=24,
             to_in_degree=67, pagerank_ratio=3.48, suspicious_signal_count=7,
+            transaction_hour=3,
         ),
     }
 
     preset = st.selectbox("Load preset scenario", ["— custom —"] + list(PRESETS.keys()))
-    d = PRESETS.get(preset, PRESETS["🟡 Medium Risk — Cross-border elevated velocity"])
+    d = PRESETS.get(preset, PRESETS[" Medium Risk — Cross-border elevated velocity"])
 
     # st.form groups inputs so the API is only called when the
     # submit button is pressed — not on every individual widget change.
@@ -647,8 +651,9 @@ elif page == "🚨 Live Scoring":
             "to_in_degree": to_in_deg,
             "pagerank_ratio": round(to_pr / (from_pr + 1e-10), 4),
             "suspicious_signal_count": suspicious_signal_count,
+            "transaction_hour": int(d["transaction_hour"]),
         }
-
+           
         result = api_post("/predict", payload, params={"threshold": threshold})
 
         if result:
@@ -670,11 +675,11 @@ elif page == "🚨 Live Scoring":
                     "bar": {"color": color, "thickness": 0.25},
                     "bgcolor": "#13151c", "borderwidth": 0,
                     "steps": [
-                        {"range": [0,  30], "color": "#10b98115"},
-                        {"range": [30, 60], "color": "#f59e0b15"},
-                        {"range": [60,100], "color": "#ef444415"},
+                        {"range": [0,  30], "color": "rgba(16,185,129,0.08)"},
+                        {"range": [30, 60], "color": "rgba(245,158,11,0.08)"},
+                        {"range": [60,100], "color": "rgba(239,68,68,0.08)"},
                     ],
-                    "threshold": {"line": {"color": "#ffffff50", "width": 2},
+                    "threshold": {"line": {"color": "rgba(255,255,255,0.31)", "width": 2},
                                   "thickness": 0.75, "value": threshold * 100},
                 },
             ))
