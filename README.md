@@ -135,32 +135,40 @@ curl -X POST "http://localhost:8000/predict?threshold=0.4" \
 
 ## Dashboard
 
-<details>
-<summary>📊 <strong>Model Performance</strong> — ROC curve, PR curve, confusion matrix and key metrics for the best model</summary>
-<br>
-<img src="docs/screenshots/landing_page.png" alt="Model Performance" width="700"/>
-</details>
-<details>
-<summary>🏆 <strong>Model Comparison</strong> — All three models side by side: grouped bar chart, overlaid ROC and PR curves, confusion matrices</summary>
-<br>
-<img src="docs/screenshots/model_comp.png" alt="Model Comparison" width="700"/>
-</details>
-<details>
-<summary>⚙️ <strong>Threshold Tuning</strong> — Live slider: instantly see how precision, recall and F1 respond as the threshold moves</summary>
-<br>
-<img src="docs/screenshots/tunning.png" alt="Threshold Tuning" width="700"/>
-</details>
-<details>
-<summary>🔬 <strong>Feature Importance</strong> — What the model actually learned to look at</summary>
-<br>
-<img src="docs/screenshots/feature.png" alt="Feature Importance" width="700"/>
-</details>
-<details>
-<summary>🚨 <strong>Live Scoring</strong> — Submit a transaction, get a real-time fraud probability gauge and risk classification</summary>
-<br>
-<img src="docs/screenshots/scoring.png" alt="Live Scoring" width="700"/>
-</details>
+```bash
+streamlit run streamlit_app.py
+# → http://localhost:8501
+```
 
+---
+
+**📊 Model Performance** — ROC curve, PR curve, confusion matrix and key metrics for the best model.
+
+![Model Performance](docs/screenshots/landing_page.png)
+
+---
+
+**🏆 Model Comparison** — All three models side by side: grouped bar chart, overlaid ROC and PR curves, confusion matrices.
+
+![Model Comparison](docs/screenshots/model_comp.png)
+
+---
+
+**⚙️ Threshold Tuning** — Live slider: instantly see how precision, recall and F1 respond as the threshold moves.
+
+![Threshold Tuning](docs/screenshots/tunning.png)
+
+---
+
+**🔬 Feature Importance** — What the model actually learned to look at.
+
+![Feature Importance](docs/screenshots/feature.png)
+
+---
+
+**🚨 Live Scoring** — Submit a transaction, get a real-time fraud probability gauge and risk classification.
+
+![Live Scoring](docs/screenshots/scoring.png)
 
 ---
 
