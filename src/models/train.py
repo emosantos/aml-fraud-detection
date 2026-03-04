@@ -2,6 +2,9 @@
 AML Fraud Detection - Multi-Model Training
 Trains and compares: Logistic Regression, Random Forest, LightGBM.
 Saves per-model artifacts + comparison.json. Best model saved as best_model.pkl.
+
+MLflow tracks every run automatically. View the UI with:
+    mlflow ui
 """
 
 import json
@@ -29,6 +32,9 @@ from sklearn.metrics import (
     recall_score,
 )
 import lightgbm as lgb
+import mlflow
+import mlflow.sklearn
+import mlflow.lightgbm
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
@@ -38,6 +44,10 @@ ROOT = Path(__file__).resolve().parents[2]
 DATA_PATH = ROOT / "data" / "gold_layer" / "engineered_features.parquet"
 MODEL_DIR = ROOT / "models"
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
+
+# MLflow stores run data in mlruns/ at the project root by default.
+# "mlflow ui" will read from there automatically.
+MLFLOW_EXPERIMENT = "aml-fraud-detection"
 
 # Config
 TARGET_COL = "is_laundering"
@@ -57,6 +67,7 @@ DROP_COLS = [
     "original_currency",
     "payment_format",
     "original_amount",
+    "transaction_hour",  # raw column — already encoded as hour_sin/hour_cos
 ]
 
 
@@ -90,18 +101,22 @@ def build_models(y_train: pd.Series) -> dict:
     scale_pos_weight = float(neg / pos)
 
     return {
-        "logistic_regression": Pipeline([
+        "logistic_regression": {
+            "model": Pipeline([
             ("scaler", StandardScaler()),
             ("clf", LogisticRegression(
                 class_weight="balanced",
                 max_iter=1000,
                 C=0.1,
-                solver="lbfgs",
+                solver="lbfgs",             # Try Newtown-Cholesky later
                 random_state=RANDOM_STATE,
                 n_jobs=-1,
             )),
         ]),
-        "random_forest": RandomForestClassifier(
+        "params": {"C": 0.1, "class_weight": "balanced", "max_iter": 1000},
+        },
+        "random_forest": {
+            "model":RandomForestClassifier(
             n_estimators=300,
             max_depth=12,
             min_samples_leaf=10,
@@ -109,23 +124,31 @@ def build_models(y_train: pd.Series) -> dict:
             random_state=RANDOM_STATE,
             n_jobs=-1,
         ),
-        "lightgbm": lgb.LGBMClassifier(
-            objective="binary",
-            boosting_type="gbdt",
-            num_leaves=63,
-            learning_rate=0.05,
-            feature_fraction=0.8,
-            bagging_fraction=0.8,
-            bagging_freq=5,
-            min_child_samples=20,
-            n_estimators=500,
-            scale_pos_weight=scale_pos_weight,
-            verbose=-1,
-            n_jobs=-1,
-            random_state=RANDOM_STATE,
-        ),
+        "params": {"n_estimators": 300, "max_depth": 12, "class_weight": "balanced"},
+        },
+        "lightgbm":{
+            "model":lgb.LGBMClassifier(
+                objective="binary",
+                boosting_type="gbdt",
+                num_leaves=63,
+                learning_rate=0.05,
+                feature_fraction=0.8,
+                bagging_fraction=0.8,
+                bagging_freq=5,
+                min_child_samples=20,
+                n_estimators=500,
+                scale_pos_weight=scale_pos_weight,
+                verbose=-1,
+                n_jobs=-1,
+                random_state=RANDOM_STATE,
+            ),
+            "params": {
+                "num_leaves": 63, "learning_rate": 0.05,
+                "feature_fraction": 0.8, "scale_pos_weight": round(scale_pos_weight, 2),
+                "n_estimators": 500,
+            },
+        }
     }
-
 
 # Training
 def train_model(name: str, model, X_train, X_test, y_train, y_test):
@@ -197,6 +220,47 @@ def get_feature_importance(name: str, model, feature_names: list) -> list[dict]:
         log.warning(f"Could not extract feature importance for {name}: {e}")
         return []
 
+# MLflow logging
+def log_to_mlflow(name: str, params: dict, metrics: dict, model, feature_names: list, is_best: bool):
+    """
+    Log one model run to MLflow.
+
+    What gets logged:
+      - params:  the hyperparameters used (so you can compare runs)
+      - metrics: ROC-AUC, PR-AUC, F1, precision, recall
+      - tags:    model name, whether it was selected as best
+      - model:   the serialised model itself (stored in mlruns/)
+
+    After training, open the MLflow UI with:
+        mlflow ui
+    and browse to http://localhost:5000 to see all runs side by side.
+    """
+    with mlflow.start_run(run_name=name):
+        # Tags — searchable labels attached to the run
+        mlflow.set_tag("model_name", name)
+        mlflow.set_tag("best_model", str(is_best))
+        mlflow.set_tag("selection_metric", SELECTION_METRIC)
+
+        # Hyperparameters
+        mlflow.log_params(params)
+        mlflow.log_param("random_state", RANDOM_STATE)
+        mlflow.log_param("test_size", TEST_SIZE)
+        mlflow.log_param("n_features", len(feature_names))
+
+        # Evaluation metrics
+        mlflow.log_metric("roc_auc",   metrics["roc_auc"])
+        mlflow.log_metric("pr_auc",    metrics["pr_auc"])
+        mlflow.log_metric("f1",        metrics["f1"])
+        mlflow.log_metric("precision", metrics["precision"])
+        mlflow.log_metric("recall",    metrics["recall"])
+
+        # Log the model artifact so MLflow can version and serve it
+        if name == "lightgbm":
+            mlflow.lightgbm.log_model(model, artifact_path="model")
+        else:
+            mlflow.sklearn.log_model(model, artifact_path="model")
+
+        log.info(f"  MLflow run logged for {name}")
 
 # Save
 def save_artifacts(models, all_metrics, all_fi, best_name, feature_names):
@@ -258,19 +322,25 @@ def main():
     if not DATA_PATH.exists():
         raise FileNotFoundError(
             f"Gold features not found at {DATA_PATH}. "
-            "Run the feature engineering pipeline first to generate the Gold Layer."
+            "Run the feature engineering pipeline first."
         )
     df = load_data(DATA_PATH)
-
     X_train, X_test, y_train, y_test = split_data(df)
     feature_names = X_train.columns.tolist()
+
+    # Point MLflow at the project root so mlruns/ is created there
+    mlflow.set_tracking_uri(f"file://{ROOT}/mlruns")
+    mlflow.set_experiment(MLFLOW_EXPERIMENT)
+    log.info(f"MLflow experiment: \"{MLFLOW_EXPERIMENT}\"")
+    log.info(f"MLflow tracking:   {ROOT}/mlruns")
+    log.info(f"View UI with:      mlflow ui  →  http://localhost:5000")
 
     model_defs = build_models(y_train)
     trained_models, all_metrics, all_fi = {}, {}, {}
 
     log.info("=" * 60)
-    for name, model in model_defs.items():
-        trained = train_model(name, model, X_train, X_test, y_train, y_test)
+    for name, definition in model_defs.items():
+        trained = train_model(name, definition["model"], X_train, X_test, y_train, y_test)
         metrics = evaluate_model(name, trained, X_test, y_test)
         fi = get_feature_importance(name, trained, feature_names)
         trained_models[name] = trained
@@ -279,11 +349,22 @@ def main():
 
     best_name = max(all_metrics, key=lambda n: all_metrics[n][SELECTION_METRIC])
 
+    # Log each model to MLflow now that we know which is best
+    for name, definition in model_defs.items():
+        log_to_mlflow(
+            name=name,
+            params=definition["params"],
+            metrics=all_metrics[name],
+            model=trained_models[name],
+            feature_names=feature_names,
+            is_best=(name == best_name),
+        )
+
     log.info("=" * 60)
     log.info("FINAL RESULTS")
     log.info("=" * 60)
     for name, m in all_metrics.items():
-        tag = " ← BEST" if name == best_name else ""
+        tag = " <- BEST" if name == best_name else ""
         log.info(
             f"  {name:25s} | ROC-AUC: {m['roc_auc']:.4f} "
             f"| PR-AUC: {m['pr_auc']:.4f} | F1: {m['f1']:.4f}{tag}"
@@ -291,6 +372,8 @@ def main():
 
     save_artifacts(trained_models, all_metrics, all_fi, best_name, feature_names)
     log.info(f"\nDone. Best model: {best_name}")
+    log.info("Run \'mlflow ui\' to explore all runs at http://localhost:5000")
+
 
 if __name__ == "__main__":
     main()
