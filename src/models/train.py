@@ -262,6 +262,24 @@ def log_to_mlflow(name: str, params: dict, metrics: dict, model, feature_names: 
 
         log.info(f"  MLflow run logged for {name}")
 
+# Downsample curves
+
+def downsample_curves(metrics: dict, n_points: int = 200) -> dict:
+    """
+    Reduce PR and ROC curves to n_points
+    """    
+    import copy
+    m = copy.deepcopy(metrics)
+
+    for curve_key in ["pr_curve", "roc_curve"]:
+        curve = m.get(curve_key, {})
+        length = len(next(iter(curve.values()),[]))
+        if length <= n_points:
+            continue
+        indices = [int(i * length / n_points) / (n_points -1 ) for i in range(n_points)]
+        m[curve_key] = {k: [v[i] for i in indices] for k, v in curve.items()}
+    return m
+
 # Save
 def save_artifacts(models, all_metrics, all_fi, best_name, feature_names):
     # Individual model pickles
@@ -278,11 +296,11 @@ def save_artifacts(models, all_metrics, all_fi, best_name, feature_names):
     # Per-model metrics JSON
     for name, metrics in all_metrics.items():
         with open(MODEL_DIR / f"{name}_metrics.json", "w") as f:
-            json.dump(metrics, f, indent=2)
+            json.dump(downsample_curves(metrics), f)
 
     # Best model metrics (used by threshold + live scoring pages)
     with open(MODEL_DIR / "metrics.json", "w") as f:
-        json.dump(all_metrics[best_name], f, indent=2)
+        json.dump(downsample_curves(all_metrics[best_name]), f)
 
     # Comparison summary
     comparison = {
@@ -303,16 +321,16 @@ def save_artifacts(models, all_metrics, all_fi, best_name, feature_names):
         },
     }
     with open(MODEL_DIR / "comparison.json", "w") as f:
-        json.dump(comparison, f, indent=2)
+        json.dump(comparison, f)
     log.info("Saved comparison.json")
 
     # Feature importance for best model
     with open(MODEL_DIR / "feature_importance.json", "w") as f:
-        json.dump(all_fi[best_name], f, indent=2)
+        json.dump(all_fi[best_name], f)
 
     # Feature names
     with open(MODEL_DIR / "feature_names.json", "w") as f:
-        json.dump(feature_names, f, indent=2)
+        json.dump(feature_names, f)
 
     log.info(f"All artifacts saved to {MODEL_DIR}/")
 
