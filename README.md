@@ -6,6 +6,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?logo=fastapi)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.35-FF4B4B?logo=streamlit)
 ![Postgresql](https://img.shields.io/badge/PostgreSQL-14.7-336791?logo=postgresql)
+![MLflow](https://img.shields.io/badge/MLflow-3.9-blue?logo=mlflow)
 
 ---
 
@@ -232,6 +233,7 @@ aml-fraud-detection/
 | ML models | scikit-learn, LightGBM |
 | API | FastAPI, Pydantic, Uvicorn |
 | Dashboard | Streamlit, Plotly |
+| Experiment tracking | MLflow |
 | Infrastructure | PostgreSQL, Docker |
 
 ---
