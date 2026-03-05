@@ -41,11 +41,9 @@ data/gold_layer/*.parquet
 Thumbs.db
 
 # Model artifacts
-models/*.pkl
-models/*.joblib
-models/*.h5
-models/*.pt
-models/*.json
+models/random_forest_model.pkl
+models/logistic_regression_model.pkl
+models/lightgbm_model.pkl
 mlruns/
 artifacts/
 
