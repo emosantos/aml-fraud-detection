@@ -273,11 +273,16 @@ def downsample_curves(metrics: dict, n_points: int = 200) -> dict:
 
     for curve_key in ["pr_curve", "roc_curve"]:
         curve = m.get(curve_key, {})
-        length = len(next(iter(curve.values()),[]))
-        if length <= n_points:
-            continue
-        indices = [int(i * length / n_points) / (n_points -1 ) for i in range(n_points)]
-        m[curve_key] = {k: [v[i] for i in indices] for k, v in curve.items()}
+        downsampled = {}
+
+        for k, v in curve.items():
+            length = len(v)
+            if length <= n_points:
+                downsampled[k] = v
+            else:
+                indices = [int(round(i * (length - 1) / (n_points - 1))) for i in range(n_points)]
+                downsampled[k] = [v[i] for i in indices]
+        m[curve_key] = downsampled
     return m
 
 # Save

@@ -78,5 +78,5 @@ readmeanot.md
 
 # Data
 
-*.json
+
 *.parquet
