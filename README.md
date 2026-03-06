@@ -8,6 +8,8 @@
 ![Postgresql](https://img.shields.io/badge/PostgreSQL-14.7-336791?logo=postgresql)
 ![MLflow](https://img.shields.io/badge/MLflow-3.9-blue?logo=mlflow)
 
+### [Live Demo: aml-frauddetection.streamlit.app](https://aml-frauddetection.streamlit.app)
+
 ---
 
 ## Overview
@@ -15,7 +17,6 @@
 This project implements a Medallion Architecture to process and analyze over 5 million transactions from the [IBM AML dataset](https://ibm.ent.box.com/v/AML-Anti-Money-Laundering-Data). It transitions data from raw ingestion to refined feature sets for anomaly detection.
 
 ---
-
 ## Pipeline Architecture
 
 ```
@@ -238,3 +239,12 @@ aml-fraud-detection/
 
 ---
 
+## Key Design Decisions
+
+**Medallion architecture** — Raw data is never mutated. Every transformation is reproducible and auditable.
+
+**PR-AUC as selection metric** — On highly imbalanced data, PR-AUC is more honest than ROC-AUC.
+
+**Threshold as a runtime parameter** — The classification threshold is not baked into the model. It is passed at inference time, and exposed as an interactive slider in the dashboard.
+
+**Pydantic schemas** — Every API field is explicitly typed and validated.
