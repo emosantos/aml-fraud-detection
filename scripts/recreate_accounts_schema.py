@@ -17,10 +17,10 @@ conn = psycopg2.connect(
 
 cur = conn.cursor()
 
-print("🗑️  Dropping old raw_accounts table...")
+print("Dropping old raw_accounts table...")
 cur.execute("DROP TABLE IF EXISTS bronze_layer.raw_accounts CASCADE")
 
-print("🔨 Creating new raw_accounts table with correct schema...")
+print("Creating new raw_accounts table with correct schema...")
 cur.execute("""
     CREATE TABLE bronze_layer.raw_accounts (
         id SERIAL PRIMARY KEY,
@@ -34,7 +34,7 @@ cur.execute("""
     )
 """)
 
-print("📑 Creating indexes...")
+print("Creating indexes...")
 cur.execute("CREATE INDEX IF NOT EXISTS idx_raw_accounts_account ON bronze_layer.raw_accounts(account_number)")
 cur.execute("CREATE INDEX IF NOT EXISTS idx_raw_accounts_entity ON bronze_layer.raw_accounts(entity_id)")
 cur.execute("CREATE INDEX IF NOT EXISTS idx_raw_accounts_bank ON bronze_layer.raw_accounts(bank_id)")
@@ -43,4 +43,4 @@ conn.commit()
 cur.close()
 conn.close()
 
-print("✅ Table recreated successfully!")
+print("Table recreated successfully!")

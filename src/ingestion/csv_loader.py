@@ -155,8 +155,8 @@ class CSVLoader:
                 'Account': 'From Account',
                 'Account.1': 'To Account'
             })
-            print("     ✅ Renamed: 'Account' → 'From Account'")
-            print("     ✅ Renamed: 'Account.1' → 'To Account'")
+            print("Renamed: 'Account' → 'From Account'")
+            print("Renamed: 'Account.1' → 'To Account'")
 
         # Also handle if someone manually fixed the CSV
         elif 'From Account' not in df.columns or 'To Account' not in df.columns:
@@ -233,7 +233,7 @@ class CSVLoader:
                                 now  # DATETIME
                             ))
                         except Exception as e:
-                            print(f"⚠️  Skipping row due to error: {e}")
+                            print(f"Skipping row due to error: {e}")
                             continue               
 
                     execute_batch(cur, self.TRANSACTION_INSERT_SQL, rows, page_size=1000)

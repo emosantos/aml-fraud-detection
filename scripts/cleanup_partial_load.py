@@ -39,11 +39,11 @@ def cleanup_partial_loads():
         print(f"   - {batch_id}: {count:,} rows")
     
     # Delete all (you can modify this to delete specific batches)
-    print("\n🗑️  Deleting all data from bronze_layer.raw_transactions...")
+    print("\nDeleting all data from bronze_layer.raw_transactions...")
     cur.execute("DELETE FROM bronze_layer.raw_transactions")
     conn.commit()
     
-    print("✅ All partial data deleted")
+    print("All partial data deleted")
     
     cur.close()
     conn.close()

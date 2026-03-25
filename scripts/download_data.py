@@ -87,13 +87,12 @@ def print_manual_instructions():
     """)
     
     print(f" Target folder: {RAW_DATA_DIR}")
-    print("=" * 70)
 
 def verify_data():
     """Check if all required files are in place"""
     
     print("\n Checking data/raw/ contents:")
-    print("-" * 50)
+
     
     all_good = True
     

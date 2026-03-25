@@ -1,5 +1,5 @@
 -- DB Schema
--- Run Automatically when Docker is created
+
 
 -- UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -145,7 +145,7 @@ CREATE INDEX IF NOT EXISTS idx_drift_detected ON gold_layer.data_drift_metrics(d
 CREATE SCHEMA IF NOT EXISTS audit;
 
 -- Tracks every pipeline run (ingestion, processing, training)
--- Useful for monitoring
+
 CREATE TABLE IF NOT EXISTS audit.pipeline_runs (
     run_id SERIAL PRIMARY KEY,
     pipeline_name VARCHAR(100) NOT NULL,
