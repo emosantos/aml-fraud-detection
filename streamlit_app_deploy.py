@@ -149,8 +149,8 @@ with st.sidebar:
     st.markdown("---")
     page = st.radio(
         "Navigation",
-        ["📊 Model Performance", "🏆 Model Comparison", "⚙️ Threshold Tuning",
-         "🔬 Feature Importance", "🚨 Live Scoring"],
+        ["Model Performance", "Model Comparison", "Threshold Tuning",
+         "Feature Importance", "Live Scoring"],
         label_visibility="collapsed",
     )
     st.markdown("---")
@@ -171,7 +171,7 @@ st.markdown("<hr class='divider'>", unsafe_allow_html=True)
 # ══════════════════════════════════════════════════════════════════
 # PAGE: Model Performance
 # ══════════════════════════════════════════════════════════════════
-if page == "📊 Model Performance":
+if page == "Model Performance":
     metrics = load_json("metrics.json")
     if not metrics:
         st.error("metrics.json not found in models/")
@@ -235,7 +235,7 @@ if page == "📊 Model Performance":
 # ══════════════════════════════════════════════════════════════════
 # PAGE: Model Comparison
 # ══════════════════════════════════════════════════════════════════
-elif page == "🏆 Model Comparison":
+elif page == "Model Comparison":
     comparison = load_json("comparison.json")
     if not comparison:
         st.error("comparison.json not found in models/")
@@ -344,7 +344,7 @@ elif page == "🏆 Model Comparison":
 # ══════════════════════════════════════════════════════════════════
 # PAGE: Threshold Tuning
 # ══════════════════════════════════════════════════════════════════
-elif page == "⚙️ Threshold Tuning":
+elif page == "Threshold Tuning":
     metrics = load_json("metrics.json")
     if not metrics:
         st.error("metrics.json not found in models/")
@@ -431,7 +431,7 @@ elif page == "🔬 Feature Importance":
 # PAGE: Live Scoring
 # Calls model.predict_proba() directly — no API needed
 # ══════════════════════════════════════════════════════════════════
-elif page == "🚨 Live Scoring":
+elif page == "Live Scoring":
     st.markdown("### Live Transaction Scoring")
     st.markdown("Submit a transaction to get a real-time fraud probability from the model.")
 
@@ -445,7 +445,7 @@ elif page == "🚨 Live Scoring":
     threshold = st.slider("Decision Threshold", 0.01, 0.99, 0.50, 0.01, format="%.2f")
 
     PRESETS = {
-        "🟢 Low Risk — Normal transfer": dict(
+        "Low Risk — Normal transfer": dict(
             amount_usd=250.0, hour_sin=0.0, hour_cos=1.0,
             day_of_week=2, dow_sin=0.782, dow_cos=0.623,
             is_weekend=0, is_business_hours=1, is_unusual_hour=0,
@@ -462,7 +462,7 @@ elif page == "🚨 Live Scoring":
             from_pagerank=0.0001, to_pagerank=0.0002, from_out_degree=3,
             to_in_degree=5, pagerank_ratio=2.0, suspicious_signal_count=0,
         ),
-        "🟡 Medium Risk — Cross-border elevated velocity": dict(
+        "Medium Risk — Cross-border elevated velocity": dict(
             amount_usd=4200.0, hour_sin=-0.5, hour_cos=-0.866,
             day_of_week=5, dow_sin=-0.975, dow_cos=0.223,
             is_weekend=1, is_business_hours=0, is_unusual_hour=0,
@@ -479,7 +479,7 @@ elif page == "🚨 Live Scoring":
             from_pagerank=0.0012, to_pagerank=0.0045, from_out_degree=9,
             to_in_degree=22, pagerank_ratio=3.75, suspicious_signal_count=3,
         ),
-        "🔴 High Risk — Suspicious layering pattern": dict(
+        "High Risk — Suspicious layering pattern": dict(
             amount_usd=9900.0, hour_sin=-0.866, hour_cos=-0.5,
             day_of_week=6, dow_sin=-0.782, dow_cos=0.623,
             is_weekend=1, is_business_hours=0, is_unusual_hour=1,
@@ -499,7 +499,7 @@ elif page == "🚨 Live Scoring":
     }
 
     preset = st.selectbox("Load preset scenario", ["— custom —"] + list(PRESETS.keys()))
-    d = PRESETS.get(preset, PRESETS["🟡 Medium Risk — Cross-border elevated velocity"])
+    d = PRESETS.get(preset, PRESETS["Medium Risk — Cross-border elevated velocity"])
 
     with st.form("score_form"):
         c1, c2, c3 = st.columns(3)
@@ -605,7 +605,7 @@ elif page == "🚨 Live Scoring":
         with g: st.plotly_chart(fig, use_container_width=True)
         with v:
             st.markdown("<br><br>", unsafe_allow_html=True)
-            st.markdown(f"### {'🔴 LAUNDERING' if is_laund else '🟢 LEGITIMATE'}")
+            st.markdown(f"### {' LAUNDERING' if is_laund else ' LEGITIMATE'}")
             st.markdown(f'<span class="risk-{risk.lower()}">{risk} RISK</span>', unsafe_allow_html=True)
         with m_col:
             st.markdown("<br><br>", unsafe_allow_html=True)
