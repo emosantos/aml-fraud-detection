@@ -144,31 +144,25 @@ streamlit run streamlit_app.py
 
 ---
 
-**📊 Model Performance** — ROC curve, PR curve, confusion matrix and key metrics for the best model.
+**Model Performance** — ROC curve, PR curve, confusion matrix and key metrics for the best model.
 
 ![Model Performance](docs/screenshots/landing_page.png)
 
 ---
 
-**🏆 Model Comparison** — All three models side by side: grouped bar chart, overlaid ROC and PR curves, confusion matrices.
+**Model Comparison** — All three models side by side: grouped bar chart, overlaid ROC and PR curves, confusion matrices.
 
 ![Model Comparison](docs/screenshots/model_comp.png)
 
 ---
 
-**⚙️ Threshold Tuning** — Live slider: instantly see how precision, recall and F1 respond as the threshold moves.
+**Threshold Tuning** — Live slider: instantly see how precision, recall and F1 respond as the threshold moves.
 
 ![Threshold Tuning](docs/screenshots/tunning.png)
 
 ---
 
-**🔬 Feature Importance** — What the model actually learned to look at.
-
-![Feature Importance](docs/screenshots/feature.png)
-
----
-
-**🚨 Live Scoring** — Submit a transaction, get a real-time fraud probability gauge and risk classification.
+**Live Scoring** — Submit a transaction, get a real-time fraud probability gauge and risk classification.
 
 ![Live Scoring](docs/screenshots/scoring.png)
 
