@@ -177,8 +177,8 @@ with st.sidebar:
     # so the if/elif block below automatically shows the right content.
     page = st.radio(
         "Navigation",
-        ["📊 Model Performance", "🏆 Model Comparison", "⚙️ Threshold Tuning",
-         "🔬 Feature Importance", "🚨 Live Scoring"],
+        ["Model Performance", "Model Comparison", "Threshold Tuning",
+         "Feature Importance", "Live Scoring"],
         label_visibility="collapsed",
     )
 
@@ -202,7 +202,7 @@ st.markdown("<hr class='divider'>", unsafe_allow_html=True)
 # Shows the best model's metrics in detail — ROC, PR curve,
 # confusion matrix, and the five key numbers.
 # ══════════════════════════════════════════════════════════════════
-if page == "📊 Model Performance":
+if page == "Model Performance":
     metrics = api_get("/metrics")
     if not metrics:
         st.warning("API is offline. Start it with: `uvicorn src.api.main:app --reload`")
@@ -283,7 +283,7 @@ if page == "📊 Model Performance":
 # All three models side by side — grouped bar chart, overlaid
 # ROC/PR curves, confusion matrices, and a summary table.
 # ══════════════════════════════════════════════════════════════════
-elif page == "🏆 Model Comparison":
+elif page == "Model Comparison":
     comparison = api_get("/comparison")
     if not comparison:
         st.warning("API offline.")
@@ -409,7 +409,7 @@ elif page == "🏆 Model Comparison":
 # Moving a slider instantly recalculates and redraws everything —
 # that's Streamlit's rerun model at work.
 # ══════════════════════════════════════════════════════════════════
-elif page == "⚙️ Threshold Tuning":
+elif page == "Threshold Tuning":
     metrics = api_get("/metrics")
     if not metrics:
         st.warning("API offline.")
@@ -473,7 +473,7 @@ elif page == "⚙️ Threshold Tuning":
 # PAGE: Feature Importance
 # Horizontal bar chart — what did the model actually learn?
 # ══════════════════════════════════════════════════════════════════
-elif page == "🔬 Feature Importance":
+elif page == "Feature Importance":
     fi_data  = api_get("/features?top_n=20")
     metrics  = api_get("/metrics")
     if not fi_data:
@@ -516,7 +516,7 @@ elif page == "🔬 Feature Importance":
 # Presets load sensible example values so the demo works out of
 # the box — low/medium/high risk scenarios.
 # ══════════════════════════════════════════════════════════════════
-elif page == "🚨 Live Scoring":
+elif page == "Live Scoring":
     st.markdown("### Live Transaction Scoring")
     st.markdown(
         "Fill in transaction features below — or load a preset scenario — "
